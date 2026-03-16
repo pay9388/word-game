@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>조씨네 영어 학습방</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ████ 1. 로그인 화면 ████ -->
+<div id="screen-login">
+  <h1>조씨네 영어 학습방</h1>
+  <p class="subtitle">사랑하는 우리 딸들 화이팅!! 아빠가!</p>
+  <div class="login-btns">
+    <button class="login-btn-child" onclick="loginChild('연우')">조연우</button>
+    <button class="login-btn-child" onclick="loginChild('연수')">조연수</button>
+  </div>
+  <button class="login-btn-dad" onclick="showAdminLogin()">아빠</button>
+</div>
+
+<!-- ████ 2. 관리자 로그인 ████ -->
+<div id="screen-admin-login" class="hidden">
+  <h1>관리자 로그인</h1>
+  <div class="card" style="width:100%">
+    <div style="display:flex;flex-direction:column;gap:12px;align-items:center">
+      <p style="color:#555">비밀번호를 입력하세요</p>
+      <input type="password" id="admin-pw" placeholder="비밀번호" />
+      <button class="btn btn-primary" onclick="checkAdminPw()">로그인</button>
+      <div class="error-msg" id="admin-pw-error"></div>
+      <button class="login-btn-dad" onclick="showScreen('login')">← 뒤로 돌아가기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ████ 3. 단원 목록 화면 (학생) ████ -->
+<div id="screen-units" class="hidden">
+  <div class="screen-header">
+    <button class="btn-back" onclick="showScreen('login')">← 뒤로</button>
+    <h2 id="units-title">단원 선택</h2>
+  </div>
+
+  <div class="unit-list" id="unit-list"></div>
+</div>
+
+<!-- ████ 4. 학습 메뉴 화면 ████ -->
+<div id="screen-menu" class="hidden">
+  <div class="screen-header">
+    <button class="btn-back" onclick="goToUnits()">← 뒤로</button>
+    <h2 id="menu-title">학습 메뉴</h2>
+  </div>
+  <div class="menu-list">
+    <button class="menu-item" onclick="startFlashcard('all')">
+      <span class="menu-icon">📖</span>
+      <div class="menu-text">
+        <div class="menu-title">플래시카드 학습</div>
+        <div class="menu-desc">단어 카드로 전체 단어 익히기</div>
+      </div>
+    </button>
+    <button class="menu-item" onclick="startSpelling('all')">
+      <span class="menu-icon">✏️</span>
+      <div class="menu-text">
+        <div class="menu-title">스펠링 퀴즈</div>
+        <div class="menu-desc">뜻을 보고 영어 단어 입력하기</div>
+      </div>
+    </button>
+    <button class="menu-item" id="btn-wrong" onclick="startWrongStudy()" disabled>
+      <span class="menu-icon">🔁</span>
+      <div class="menu-text">
+        <div class="menu-title">틀린 단어 학습</div>
+        <div class="menu-desc" id="wrong-desc">스펠링 퀴즈 후 활성화됩니다</div>
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- ████ 5. 플래시카드 화면 ████ -->
+<div id="screen-flashcard" class="hidden">
+  <div class="screen-header" style="width:100%;max-width:480px">
+    <button class="btn-back" id="fc-back-btn">← 뒤로</button>
+    <h2 id="fc-title">플래시카드</h2>
+  </div>
+  <div class="flashcard" onclick="toggleMeaning()">
+    <button class="btn-sound" onclick="speakWord(event)">🔊</button>
+    <div class="fc-word" id="fc-word">-</div>
+    <div class="fc-meaning hidden" id="fc-meaning">-</div>
+    <div class="fc-hint" id="fc-hint">카드를 눌러 뜻 확인</div>
+  </div>
+  <div class="nav-btns">
+    <button class="btn btn-secondary" onclick="fcPrev()">◀ 이전</button>
+    <button class="btn btn-primary" onclick="fcNext()">다음 ▶</button>
+  </div>
+  <div class="progress-text" id="fc-progress"></div>
+</div>
+
+<!-- ████ 6. 스펠링 퀴즈 화면 ████ -->
+<div id="screen-spelling" class="hidden">
+  <div class="screen-header" style="width:100%;max-width:480px">
+    <button class="btn-back" id="sp-back-btn">← 뒤로</button>
+    <h2 id="sp-title">스펠링 퀴즈</h2>
+  </div>
+  <div class="spelling-card">
+    <button class="btn-sound" onclick="speakCurrent()">🔊</button>
+    <div class="sp-meaning" id="sp-meaning">-</div>
+    <input class="sp-input" type="text" id="sp-input" placeholder="영어 단어를 입력하세요" autocomplete="off" />
+    <button class="btn btn-primary" onclick="checkAnswer()">확인</button>
+    <div class="result-msg" id="sp-result"></div>
+    <button class="btn btn-secondary" id="sp-next-btn" onclick="spNext()">다음 문제 ▶</button>
+  </div>
+  <div class="progress-text" id="sp-progress"></div>
+</div>
+
+<!-- ████ 7. 완료 화면 ████ -->
+<div id="screen-complete" class="hidden">
+  <div class="complete-emoji">🎉</div>
+  <div class="complete-title" id="complete-title">완료!</div>
+  <div class="complete-desc" id="complete-desc"></div>
+  <button class="btn btn-primary" onclick="goToUnits()">단원 목록으로</button>
+</div>
+
+<!-- ████ 8. 관리자 화면 ████ -->
+<div id="screen-admin" class="hidden">
+  <div class="screen-header" style="width:100%;max-width:540px">
+    <button class="btn-back" onclick="showScreen('login')">← 뒤로</button>
+    <h2>관리자 - 단어 관리</h2>
+  </div>
+
+  <!-- 아이 선택 탭 -->
+  <div class="admin-section" style="max-width:540px;width:100%">
+    <h3>아이 선택</h3>
+    <div class="admin-tabs">
+      <button class="admin-tab active" id="tab-연우" onclick="selectAdminChild('연우')">조연우</button>
+      <button class="admin-tab" id="tab-연수" onclick="selectAdminChild('연수')">조연수</button>
+    </div>
+  </div>
+
+  <!-- 단원 관리 -->
+  <div class="admin-section" style="max-width:540px;width:100%">
+    <h3>단원 관리</h3>
+    <div class="input-row" style="margin-bottom:12px">
+      <input type="text" id="new-unit-name" placeholder="단원 이름 (예: OO강 영어단어 시험)" />
+      <button class="btn btn-primary" style="padding:10px 20px;font-size:0.95rem" onclick="addUnit()">추가</button>
+    </div>
+    <div id="admin-unit-list"></div>
+  </div>
+
+  <!-- 단어 관리 -->
+  <div class="admin-section" style="max-width:540px;width:100%" id="admin-word-section">
+    <h3>단어 관리 - <span id="admin-unit-label" style="color:#5c6bc0">단원을 선택하세요</span></h3>
+
+    <!-- 하나씩 추가 -->
+    <div style="margin-bottom:20px">
+      <div class="input-row">
+        <input type="text" id="new-word" placeholder="영어 단어 (예: apple)" />
+        <input type="text" id="new-meaning" placeholder="뜻 (예: 사과)" />
+        <button class="btn btn-primary" style="padding:10px 20px;font-size:0.95rem" onclick="addWord()">추가</button>
+      </div>
+      <div class="error-msg" id="word-error" style="margin-top:6px"></div>
+    </div>
+
+    <!-- CSV 업로드 -->
+    <div style="border-top:1px solid #eee;padding-top:16px;margin-bottom:16px">
+      <p style="font-size:0.9rem;color:#555;margin-bottom:10px">📂 엑셀/CSV 파일로 일괄 추가</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <label style="display:inline-block">
+          <input type="file" id="csv-upload" accept=".csv,.xlsx" style="display:none" onchange="handleFileUpload(event)" />
+          <span class="btn btn-secondary" style="padding:10px 20px;font-size:0.9rem;cursor:pointer">파일 선택</span>
+        </label>
+        <button class="btn btn-secondary" style="padding:10px 20px;font-size:0.9rem" onclick="downloadSample()">샘플 CSV 다운로드</button>
+      </div>
+      <div class="success-msg" id="upload-msg" style="margin-top:6px"></div>
+    </div>
+
+    <!-- 단어 목록 -->
+    <div>
+      <p style="font-size:0.9rem;color:#888;margin-bottom:10px">단어 목록 (<span id="admin-word-count">0</span>개)</p>
+      <div id="admin-word-list"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCZNfN3U7phNGGgSQ5Wmz26afY7VYi0uMc",
+    authDomain: "worl-game.firebaseapp.com",
+    projectId: "worl-game",
+    storageBucket: "worl-game.firebasestorage.app",
+    messagingSenderId: "29254698620",
+    appId: "1:29254698620:web:6bf442fc3998fa5c02abf9"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const ADMIN_PW = "1234";
+
+  // ── 상태 ──
+  let currentChild = "";       // "연우" | "연수"
+  let currentUnit = null;      // { id, name }
+  let currentWords = [];       // 현재 단원 단어 배열
+  let wrongWords = [];         // 이번 퀴즈에서 틀린 단어
+  let sessionWords = [];       // 틀린 단어 학습 세션에서 공부할 단어
+  let fcIndex = 0;
+  let spIndex = 0;
+  let spMode = "all";          // "all" | "wrong"
+  let fcMode = "all";
+
+  // ── 화면 전환 ──
+  const screens = ["login","admin-login","units","menu","flashcard","spelling","complete","admin"];
+  window.showScreen = function(name) {
+    screens.forEach(s => document.getElementById("screen-" + s).classList.add("hidden"));
+    document.getElementById("screen-" + name).classList.remove("hidden");
+  };
+
+  // ── 로그인 ──
+  window.loginChild = function(name) {
+    currentChild = name;
+    document.getElementById("units-title").textContent = name + "의 단원 목록";
+    loadUnits();
+    showScreen("units");
+  };
+
+  window.goToUnits = function() {
+    loadUnits();
+    showScreen("units");
+  };
+
+  window.showAdminLogin = function() { showScreen("admin-login"); };
+
+  window.checkAdminPw = function() {
+    const pw = document.getElementById("admin-pw").value;
+    if (pw === ADMIN_PW) {
+      document.getElementById("admin-pw").value = "";
+      document.getElementById("admin-pw-error").textContent = "";
+      adminChild = "연우";
+      showScreen("admin");
+      loadAdminUnits();
+    } else {
+      document.getElementById("admin-pw-error").textContent = "비밀번호가 틀렸습니다.";
+    }
+  };
+  document.getElementById("admin-pw").addEventListener("keydown", e => { if(e.key==="Enter") window.checkAdminPw(); });
+
+  // ════════════════════════════════════
+  // ── 학생: 단원 목록 ──
+  // ════════════════════════════════════
+  async function loadUnits() {
+    const list = document.getElementById("unit-list");
+    list.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">로딩 중...</p>';
+    const snapshot = await getDocs(collection(db, "users", currentChild, "units"));
+    if (snapshot.empty) {
+      list.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">단원이 없습니다. 아빠에게 부탁하세요!</p>';
+      return;
+    }
+    list.innerHTML = "";
+    snapshot.forEach(d => {
+      const unit = { id: d.id, ...d.data() };
+      const item = document.createElement("div");
+      item.className = "unit-item";
+      const done = unit.completed ? true : false;
+      item.innerHTML = `
+        <div>
+          <div class="unit-name">${unit.name}</div>
+          <div class="unit-info">${unit.wordCount || 0}개 단어</div>
+        </div>
+        <span class="unit-badge ${done ? 'badge-done' : 'badge-todo'}">${done ? '✅ 완료' : '학습 중'}</span>
+      `;
+      item.onclick = () => selectUnit(unit);
+      list.appendChild(item);
+    });
+  }
+
+  function selectUnit(unit) {
+    currentUnit = unit;
+    wrongWords = [];
+    document.getElementById("menu-title").textContent = unit.name;
+    document.getElementById("btn-wrong").disabled = true;
+    document.getElementById("wrong-desc").textContent = "스펠링 퀴즈 후 활성화됩니다";
+    showScreen("menu");
+  }
+
+  // ════════════════════════════════════
+  // ── 학생: 플래시카드 ──
+  // ════════════════════════════════════
+  window.startFlashcard = async function(mode) {
+    fcMode = mode;
+    if (mode === "all") {
+      const snap = await getDocs(collection(db, "users", currentChild, "units", currentUnit.id, "words"));
+      currentWords = snap.docs.map(d => d.data());
+      wrongWords = [];
+    } else {
+      sessionWords = [...wrongWords];
+      wrongWords = [];
+      currentWords = sessionWords;
+    }
+    if (currentWords.length === 0) { alert("단어가 없습니다!"); return; }
+    fcIndex = 0;
+    document.getElementById("fc-title").textContent = mode === "all" ? "플래시카드" : "틀린 단어 플래시카드";
+    document.getElementById("fc-back-btn").onclick = () => showScreen("menu");
+    renderFlashcard();
+    showScreen("flashcard");
+  };
+
+  function renderFlashcard() {
+    const w = currentWords[fcIndex];
+    document.getElementById("fc-word").textContent = w.word;
+    document.getElementById("fc-meaning").textContent = w.meaning;
+    document.getElementById("fc-meaning").classList.add("hidden");
+    document.getElementById("fc-hint").textContent = "카드를 눌러 뜻 확인";
+    document.getElementById("fc-progress").textContent = `${fcIndex + 1} / ${currentWords.length}`;
+  }
+
+  window.toggleMeaning = function() {
+    const el = document.getElementById("fc-meaning");
+    const hint = document.getElementById("fc-hint");
+    el.classList.toggle("hidden");
+    hint.textContent = el.classList.contains("hidden") ? "카드를 눌러 뜻 확인" : "";
+  };
+
+  window.speakWord = function(e) {
+    e.stopPropagation();
+    speak(currentWords[fcIndex]?.word);
+  };
+
+  window.fcPrev = function() {
+    fcIndex = (fcIndex - 1 + currentWords.length) % currentWords.length;
+    renderFlashcard();
+  };
+
+  window.fcNext = function() {
+    if (fcIndex < currentWords.length - 1) {
+      fcIndex++;
+      renderFlashcard();
+    } else {
+      // 플래시카드 완료 → 스펠링 퀴즈로
+      if (fcMode === "all") {
+        startSpelling("all");
+      } else {
+        startSpelling("wrong");
+      }
+    }
+  };
+
+  // ════════════════════════════════════
+  // ── 학생: 스펠링 퀴즈 ──
+  // ════════════════════════════════════
+  window.startSpelling = async function(mode) {
+    spMode = mode;
+    wrongWords = [];
+    if (mode === "all") {
+      const snap = await getDocs(collection(db, "users", currentChild, "units", currentUnit.id, "words"));
+      currentWords = snap.docs.map(d => d.data());
+      shuffle(currentWords);
+    } else {
+      currentWords = shuffle([...sessionWords]);
+    }
+    if (currentWords.length === 0) { alert("단어가 없습니다!"); return; }
+    spIndex = 0;
+    document.getElementById("sp-title").textContent = mode === "all" ? "스펠링 퀴즈" : "틀린 단어 퀴즈";
+    document.getElementById("sp-back-btn").onclick = () => showScreen("menu");
+    renderSpelling();
+    showScreen("spelling");
+  };
+
+  function renderSpelling() {
+    const w = currentWords[spIndex];
+    document.getElementById("sp-meaning").textContent = w.meaning;
+    document.getElementById("sp-input").value = "";
+    document.getElementById("sp-result").textContent = "";
+    document.getElementById("sp-result").className = "result-msg";
+    document.getElementById("sp-progress").textContent = `${spIndex + 1} / ${currentWords.length}`;
+    document.getElementById("sp-next-btn").classList.add("hidden");
+    document.getElementById("sp-input").focus();
+  }
+
+  window.speakCurrent = function() { speak(currentWords[spIndex]?.word); };
+
+  window.checkAnswer = function() {
+    const input = document.getElementById("sp-input").value.trim().toLowerCase();
+    const answer = currentWords[spIndex]?.word.toLowerCase();
+    const result = document.getElementById("sp-result");
+    if (input === answer) {
+      result.textContent = "정답! 🎉";
+      result.className = "result-msg result-correct";
+      playSound("correct");
+      speak(answer);
+    } else {
+      result.textContent = `틀렸어요 😢  정답: ${currentWords[spIndex]?.word}`;
+      result.className = "result-msg result-wrong";
+      playSound("wrong");
+      wrongWords.push(currentWords[spIndex]);
+    }
+    document.getElementById("sp-next-btn").classList.remove("hidden");
+  };
+
+  document.getElementById("sp-input").addEventListener("keydown", e => { if(e.key==="Enter") window.checkAnswer(); });
+
+  window.spNext = function() {
+    if (spIndex < currentWords.length - 1) {
+      spIndex++;
+      renderSpelling();
+    } else {
+      // 스펠링 퀴즈 완료
+      if (wrongWords.length === 0) {
+        // 전부 정답!
+        saveProgress();
+        playApplause();
+        document.getElementById("complete-title").textContent = "모두 정답! 🎉";
+        document.getElementById("complete-desc").textContent =
+          `${currentUnit.name} 단원을 완료했어요! 대단해요!`;
+        showScreen("complete");
+      } else {
+        // 틀린 단어 있음 → 메뉴로, 틀린 단어 학습 활성화
+        sessionWords = [...wrongWords];
+        document.getElementById("btn-wrong").disabled = false;
+        document.getElementById("wrong-desc").textContent = `틀린 단어 ${wrongWords.length}개 다시 학습하기`;
+        showScreen("menu");
+      }
+    }
+  };
+
+  // ════════════════════════════════════
+  // ── 틀린 단어 학습 ──
+  // ════════════════════════════════════
+  window.startWrongStudy = function() {
+    startFlashcard("wrong");
+  };
+
+  // 틀린 단어 플래시카드 끝나면 스펠링으로 (fcNext에서 처리됨)
+  // 스펠링 끝나면:
+  //   - 또 틀린 게 있으면 → 다시 플래시카드("wrong")
+  //   - 다 맞으면 → 완료
+
+  // ════════════════════════════════════
+  // ── 진도 저장 ──
+  // ════════════════════════════════════
+  async function saveProgress() {
+    await setDoc(doc(db, "users", currentChild, "units", currentUnit.id), {
+      name: currentUnit.name,
+      wordCount: currentWords.length,
+      completed: true
+    }, { merge: true });
+  }
+
+  // ════════════════════════════════════
+  // ── TTS ──
+  // ════════════════════════════════════
+  function speak(text) {
+    if (!text) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "en-US";
+    speechSynthesis.speak(utter);
+  }
+
+  // ════════════════════════════════════
+  // ── 효과음 ──
+  // ════════════════════════════════════
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playApplause() {
+    const ctx = getAudioCtx();
+    // 딩동댕 - 세 음이 올라가는 차임벨
+    [523, 659, 784].forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = "sine";
+      o.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.28;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.4, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+      o.start(t);
+      o.stop(t + 0.8);
+    });
+  }
+  function playSound(type) {
+    const ctx = getAudioCtx();
+    if (type === "correct") {
+      // 정답: 경쾌한 두 음
+      [523, 784].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = freq;
+        o.type = "sine";
+        g.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.15);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.3);
+        o.start(ctx.currentTime + i * 0.15);
+        o.stop(ctx.currentTime + i * 0.15 + 0.3);
+      });
+    } else {
+      // 오답: 낮고 짧은 버저음
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 220;
+      o.type = "sawtooth";
+      g.gain.setValueAtTime(0.3, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      o.start(ctx.currentTime);
+      o.stop(ctx.currentTime + 0.4);
+    }
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // ════════════════════════════════════
+  // ── 관리자 ──
+  // ════════════════════════════════════
+  let adminChild = "연우";
+  let adminUnit = null;
+
+  window.selectAdminChild = function(name) {
+    adminChild = name;
+    adminUnit = null;
+    document.getElementById("admin-unit-label").textContent = "단원을 선택하세요";
+    document.getElementById("admin-word-list").innerHTML = "";
+    document.getElementById("admin-word-count").textContent = "0";
+    document.querySelectorAll(".admin-tab").forEach(t => t.classList.remove("active"));
+    document.getElementById("tab-" + name).classList.add("active");
+    loadAdminUnits();
+  };
+
+  async function loadAdminUnits() {
+    const list = document.getElementById("admin-unit-list");
+    list.innerHTML = "";
+    const snap = await getDocs(collection(db, "users", adminChild, "units"));
+    if (snap.empty) {
+      list.innerHTML = '<p style="color:#aaa;font-size:0.9rem">단원이 없습니다.</p>';
+      return;
+    }
+    snap.forEach(d => {
+      const unit = { id: d.id, ...d.data() };
+      const item = document.createElement("div");
+      item.className = "unit-select-item" + (adminUnit?.id === unit.id ? " selected" : "");
+      item.innerHTML = `
+        <span style="font-size:0.95rem;color:#333">${unit.name} <span style="color:#aaa;font-size:0.8rem">(${unit.wordCount||0}개)</span></span>
+        <button class="btn-danger" onclick="deleteUnit(event,'${unit.id}')">삭제</button>
+      `;
+      item.onclick = (e) => { if(!e.target.classList.contains("btn-danger")) selectAdminUnit(unit); };
+      list.appendChild(item);
+    });
+  }
+
+  window.addUnit = async function() {
+    const name = document.getElementById("new-unit-name").value.trim();
+    if (!name) return;
+    const ref = doc(collection(db, "users", adminChild, "units"));
+    await setDoc(ref, { name, wordCount: 0, completed: false });
+    document.getElementById("new-unit-name").value = "";
+    loadAdminUnits();
+  };
+
+  window.deleteUnit = async function(e, id) {
+    e.stopPropagation();
+    if (!confirm("이 단원과 모든 단어를 삭제할까요?")) return;
+    // 단어 먼저 전부 삭제
+    const wordSnap = await getDocs(collection(db, "users", adminChild, "units", id, "words"));
+    for (const w of wordSnap.docs) {
+      await deleteDoc(doc(db, "users", adminChild, "units", id, "words", w.id));
+    }
+    // 단원 삭제
+    await deleteDoc(doc(db, "users", adminChild, "units", id));
+    if (adminUnit?.id === id) { adminUnit = null; document.getElementById("admin-unit-label").textContent = "단원을 선택하세요"; document.getElementById("admin-word-list").innerHTML = ""; document.getElementById("admin-word-count").textContent = "0"; }
+    loadAdminUnits();
+  };
+
+  function selectAdminUnit(unit) {
+    adminUnit = unit;
+    document.getElementById("admin-unit-label").textContent = unit.name;
+    loadAdminWords();
+    document.querySelectorAll(".unit-select-item").forEach(el => el.classList.remove("selected"));
+    event.currentTarget.classList.add("selected");
+  }
+
+  async function loadAdminWords() {
+    if (!adminUnit) return;
+    const snap = await getDocs(collection(db, "users", adminChild, "units", adminUnit.id, "words"));
+    const words = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById("admin-word-count").textContent = words.length;
+    const list = document.getElementById("admin-word-list");
+    if (words.length === 0) {
+      list.innerHTML = '<p style="color:#aaa;font-size:0.9rem">단어가 없습니다.</p>';
+      return;
+    }
+    list.innerHTML = words.map(w => `
+      <div class="word-item">
+        <div>
+          <div class="word-item-text">${w.word}</div>
+          <div class="word-item-meaning">${w.meaning}</div>
+        </div>
+        <button class="btn-danger" onclick="deleteWord('${w.id}')">삭제</button>
+      </div>
+    `).join("");
+  }
+
+  window.addWord = async function() {
+    if (!adminUnit) { document.getElementById("word-error").textContent = "단원을 먼저 선택하세요."; return; }
+    const word = document.getElementById("new-word").value.trim();
+    const meaning = document.getElementById("new-meaning").value.trim();
+    if (!word || !meaning) { document.getElementById("word-error").textContent = "단어와 뜻을 모두 입력하세요."; return; }
+    document.getElementById("word-error").textContent = "";
+    await addDoc(collection(db, "users", adminChild, "units", adminUnit.id, "words"), { word, meaning });
+    document.getElementById("new-word").value = "";
+    document.getElementById("new-meaning").value = "";
+    // wordCount 업데이트
+    const snap = await getDocs(collection(db, "users", adminChild, "units", adminUnit.id, "words"));
+    await setDoc(doc(db, "users", adminChild, "units", adminUnit.id), { wordCount: snap.size }, { merge: true });
+    loadAdminWords();
+    loadAdminUnits();
+  };
+
+  window.deleteWord = async function(id) {
+    if (!confirm("이 단어를 삭제할까요?")) return;
+    await deleteDoc(doc(db, "users", adminChild, "units", adminUnit.id, "words", id));
+    const snap = await getDocs(collection(db, "users", adminChild, "units", adminUnit.id, "words"));
+    await setDoc(doc(db, "users", adminChild, "units", adminUnit.id), { wordCount: snap.size }, { merge: true });
+    loadAdminWords();
+    loadAdminUnits();
+  };
+
+  // ── CSV 업로드 ──
+  window.handleFileUpload = async function(event) {
+    if (!adminUnit) { alert("단원을 먼저 선택하세요."); return; }
+    const file = event.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    let count = 0;
+    for (const line of lines) {
+      const parts = line.split(",");
+      if (parts.length < 2) continue;
+      const word = parts[0].trim();
+      const meaning = parts[1].trim();
+      if (!word || !meaning || word === "단어" || word === "word") continue; // 헤더 스킵
+      await addDoc(collection(db, "users", adminChild, "units", adminUnit.id, "words"), { word, meaning });
+      count++;
+    }
+    const snap = await getDocs(collection(db, "users", adminChild, "units", adminUnit.id, "words"));
+    await setDoc(doc(db, "users", adminChild, "units", adminUnit.id), { wordCount: snap.size }, { merge: true });
+    document.getElementById("upload-msg").textContent = `${count}개 단어가 추가되었습니다!`;
+    setTimeout(() => document.getElementById("upload-msg").textContent = "", 3000);
+    event.target.value = "";
+    loadAdminWords();
+    loadAdminUnits();
+  };
+
+  // ── 샘플 CSV 다운로드 ──
+  window.downloadSample = function() {
+    const csv = "\uFEFF단어,뜻\napple,사과\nbanana,바나나\ncat,고양이\ndog,개\nelephant,코끼리";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "단어_샘플.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // 초기 화면
+  showScreen("login");
+</script>
+</body>
+</html>
