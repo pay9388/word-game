@@ -336,11 +336,13 @@
       fcIndex++;
       renderFlashcard();
     } else {
-      // 플래시카드 완료 → 스펠링 퀴즈로
-      if (fcMode === "all") {
-        startSpelling("all");
-      } else {
+      if (fcMode === "wrong") {
+        // 틀린 단어 플래시카드 완료 → 스펠링으로 자동 이동
         startSpelling("wrong");
+      } else {
+        // 일반 플래시카드 완료 → 다음 버튼 비활성화, 안내 메시지
+        document.querySelector(".nav-btns .btn-primary").disabled = true;
+        document.getElementById("fc-progress").textContent = "✅ 플래시카드 완료! 뒤로 가서 스펠링 퀴즈를 선택하세요.";
       }
     }
   };
