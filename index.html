@@ -458,14 +458,23 @@
   }
 
   // ════════════════════════════════════
-  // ── 발음 (고정된 TTS 목소리로 일관된 발음) ──
+  // ── 발음 (StreamElements Amazon Polly → TTS 폴백) ──
   // ════════════════════════════════════
+  const audioCache = {};
 
-  function prefetchAudio() {} // 호환성 유지용 빈 함수
+  function prefetchAudio(word) {
+    const key = word.toLowerCase().trim();
+    if (audioCache[key]) return;
+    const url = `https://api.streamelements.com/kappa/v2/speech?voice=Joanna&text=${encodeURIComponent(key)}`;
+    audioCache[key] = url;
+  }
 
   function speak(text) {
     if (!text) return;
-    speakTTS(text);
+    const key = text.toLowerCase().trim();
+    if (!audioCache[key]) prefetchAudio(key);
+    const audio = new Audio(audioCache[key]);
+    audio.play().catch(() => speakTTS(text));
   }
 
   let cachedVoice = null;
