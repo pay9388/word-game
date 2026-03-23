@@ -449,10 +449,38 @@
   }
 
   // ════════════════════════════════════
-  // ── TTS ──
+  // ── 발음 (즉시 TTS → 백그라운드에서 원어민 발음 캐시) ──
   // ════════════════════════════════════
+  const audioCache = {};
+
   function speak(text) {
     if (!text) return;
+    const word = text.toLowerCase().trim();
+
+    // 캐시에 원어민 발음 있으면 바로 재생
+    if (audioCache[word] && audioCache[word] !== "tts") {
+      const audio = new Audio(audioCache[word]);
+      audio.play().catch(() => speakTTS(text));
+      return;
+    }
+
+    // 일단 TTS로 즉시 재생 (사용자 제스처 컨텍스트 유지)
+    speakTTS(text);
+
+    // 아직 캐시 없으면 백그라운드에서 원어민 발음 가져와 캐시
+    if (!audioCache[word]) {
+      audioCache[word] = "tts"; // 중복 요청 방지
+      fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          const url = data[0]?.phonetics?.find(p => p.audio)?.audio;
+          if (url) audioCache[word] = url;
+        })
+        .catch(() => {}); // 실패해도 TTS로 계속 동작
+    }
+  }
+
+  function speakTTS(text) {
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = "en-US";
     speechSynthesis.speak(utter);
