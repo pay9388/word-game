@@ -449,34 +449,31 @@
   }
 
   // ════════════════════════════════════
-  // ── 발음 (즉시 TTS → 백그라운드에서 원어민 발음 캐시) ──
+  // ── 발음 (Free Dictionary API → TTS fallback) ──
   // ════════════════════════════════════
   const audioCache = {};
 
-  function speak(text) {
+  async function speak(text) {
     if (!text) return;
     const word = text.toLowerCase().trim();
 
-    // 캐시에 원어민 발음 있으면 바로 재생
-    if (audioCache[word] && audioCache[word] !== "tts") {
-      const audio = new Audio(audioCache[word]);
-      audio.play().catch(() => speakTTS(text));
+    if (audioCache[word]) {
+      if (audioCache[word] === "tts") { speakTTS(text); return; }
+      new Audio(audioCache[word]).play();
       return;
     }
 
-    // 일단 TTS로 즉시 재생 (사용자 제스처 컨텍스트 유지)
-    speakTTS(text);
-
-    // 아직 캐시 없으면 백그라운드에서 원어민 발음 가져와 캐시
-    if (!audioCache[word]) {
-      audioCache[word] = "tts"; // 중복 요청 방지
-      fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`)
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => {
-          const url = data[0]?.phonetics?.find(p => p.audio)?.audio;
-          if (url) audioCache[word] = url;
-        })
-        .catch(() => {}); // 실패해도 TTS로 계속 동작
+    try {
+      const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+      if (!res.ok) throw new Error("not found");
+      const data = await res.json();
+      const audioUrl = data[0]?.phonetics?.find(p => p.audio)?.audio;
+      if (!audioUrl) throw new Error("no audio");
+      audioCache[word] = audioUrl;
+      new Audio(audioUrl).play();
+    } catch {
+      audioCache[word] = "tts";
+      speakTTS(text);
     }
   }
 
