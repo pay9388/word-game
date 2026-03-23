@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>조씨네 영어 학습방</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -312,6 +315,9 @@
     document.getElementById("fc-meaning").classList.add("hidden");
     document.getElementById("fc-hint").textContent = "카드를 눌러 뜻 확인";
     document.getElementById("fc-progress").textContent = `${fcIndex + 1} / ${currentWords.length}`;
+    // 현재 + 다음 단어 미리 fetch
+    prefetchAudio(w.word);
+    if (currentWords[fcIndex + 1]) prefetchAudio(currentWords[fcIndex + 1].word);
   }
 
   window.toggleMeaning = function() {
@@ -377,6 +383,9 @@
     document.getElementById("sp-progress").textContent = `${spIndex + 1} / ${currentWords.length}`;
     document.getElementById("sp-next-btn").classList.add("hidden");
     document.getElementById("sp-input").focus();
+    // 현재 + 다음 단어 미리 fetch
+    prefetchAudio(w.word);
+    if (currentWords[spIndex + 1]) prefetchAudio(currentWords[spIndex + 1].word);
   }
 
   window.speakCurrent = function() { speak(currentWords[spIndex]?.word); };
@@ -449,37 +458,37 @@
   }
 
   // ════════════════════════════════════
-  // ── 발음 (Free Dictionary API → TTS fallback) ──
+  // ── 발음 (고정된 TTS 목소리로 일관된 발음) ──
   // ════════════════════════════════════
-  const audioCache = {};
 
-  async function speak(text) {
+  function prefetchAudio() {} // 호환성 유지용 빈 함수
+
+  function speak(text) {
     if (!text) return;
-    const word = text.toLowerCase().trim();
-
-    if (audioCache[word]) {
-      if (audioCache[word] === "tts") { speakTTS(text); return; }
-      new Audio(audioCache[word]).play();
-      return;
-    }
-
-    try {
-      const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
-      if (!res.ok) throw new Error("not found");
-      const data = await res.json();
-      const audioUrl = data[0]?.phonetics?.find(p => p.audio)?.audio;
-      if (!audioUrl) throw new Error("no audio");
-      audioCache[word] = audioUrl;
-      new Audio(audioUrl).play();
-    } catch {
-      audioCache[word] = "tts";
-      speakTTS(text);
-    }
+    speakTTS(text);
   }
+
+  let cachedVoice = null;
+
+  function getEnglishVoice() {
+    if (cachedVoice) return cachedVoice;
+    const voices = speechSynthesis.getVoices();
+    cachedVoice =
+      voices.find(v => v.name === "Google US English") ||
+      voices.find(v => v.lang === "en-US" && v.name.includes("Microsoft")) ||
+      voices.find(v => v.lang === "en-US") ||
+      voices.find(v => v.lang.startsWith("en")) ||
+      null;
+    return cachedVoice;
+  }
+
+  speechSynthesis.addEventListener("voiceschanged", () => { cachedVoice = null; getEnglishVoice(); });
 
   function speakTTS(text) {
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = "en-US";
+    const voice = getEnglishVoice();
+    if (voice) utter.voice = voice;
     speechSynthesis.speak(utter);
   }
 
