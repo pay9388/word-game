@@ -392,6 +392,7 @@
   window.speakCurrent = function() { speak(currentWords[spIndex]?.word); };
 
   window.checkAnswer = function() {
+    if (!document.getElementById("sp-next-btn").classList.contains("hidden")) return;
     const input = document.getElementById("sp-input").value.trim().toLowerCase();
     const answer = currentWords[spIndex]?.word.toLowerCase();
     const result = document.getElementById("sp-result");
@@ -453,7 +454,7 @@
   async function saveProgress() {
     await setDoc(doc(db, "users", currentChild, "units", currentUnit.id), {
       name: currentUnit.name,
-      wordCount: currentWords.length,
+      wordCount: currentUnit.wordCount,
       completed: true
     }, { merge: true });
   }
@@ -592,7 +593,7 @@
         <span style="font-size:0.95rem;color:#333">${unit.name} <span style="color:#aaa;font-size:0.8rem">(${unit.wordCount||0}개)</span></span>
         <button class="btn-danger" onclick="deleteUnit(event,'${unit.id}')">삭제</button>
       `;
-      item.onclick = (e) => { if(!e.target.classList.contains("btn-danger")) selectAdminUnit(unit); };
+      item.onclick = (e) => { if(!e.target.classList.contains("btn-danger")) selectAdminUnit(unit, e.currentTarget); };
       list.appendChild(item);
     });
   }
@@ -620,12 +621,12 @@
     loadAdminUnits();
   };
 
-  function selectAdminUnit(unit) {
+  function selectAdminUnit(unit, el) {
     adminUnit = unit;
     document.getElementById("admin-unit-label").textContent = unit.name;
     loadAdminWords();
-    document.querySelectorAll(".unit-select-item").forEach(el => el.classList.remove("selected"));
-    event.currentTarget.classList.add("selected");
+    document.querySelectorAll(".unit-select-item").forEach(e => e.classList.remove("selected"));
+    el.classList.add("selected");
   }
 
   async function loadAdminWords() {
