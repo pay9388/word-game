@@ -75,6 +75,7 @@
       </div>
     </button>
   </div>
+  <button id="btn-complete" onclick="toggleComplete()" style="margin-top:16px;width:100%;max-width:400px;padding:14px;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;background:#e8f5e9;color:#388e3c;">✅ 완료로 표시하기</button>
 </div>
 
 <!-- ████ 5. 플래시카드 화면 ████ -->
@@ -106,7 +107,10 @@
     <button class="btn-sound" onclick="speakCurrent()">🔊</button>
     <div class="sp-meaning" id="sp-meaning">-</div>
     <input class="sp-input" type="text" id="sp-input" placeholder="영어 단어를 입력하세요" autocomplete="off" />
-    <button class="btn btn-primary" onclick="checkAnswer()">확인</button>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button class="btn btn-primary" onclick="checkAnswer()">확인</button>
+      <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">힌트</button>
+    </div>
     <div class="result-msg" id="sp-result"></div>
     <button class="btn btn-secondary" id="sp-next-btn" onclick="spNext()">다음 문제 ▶</button>
   </div>
@@ -211,6 +215,7 @@
   let spIndex = 0;
   let spMode = "all";          // "all" | "wrong"
   let fcMode = "all";
+  let hintCount = 0;
 
   // ── 화면 전환 ──
   const screens = ["login","admin-login","units","menu","flashcard","spelling","complete","admin"];
@@ -260,8 +265,10 @@
       return;
     }
     list.innerHTML = "";
-    snapshot.forEach(d => {
-      const unit = { id: d.id, ...d.data() };
+    const units = [];
+    snapshot.forEach(d => units.push({ id: d.id, ...d.data() }));
+    units.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    units.forEach(unit => {
       const item = document.createElement("div");
       item.className = "unit-item";
       const done = unit.completed ? true : false;
@@ -283,8 +290,31 @@
     document.getElementById("menu-title").textContent = unit.name;
     document.getElementById("btn-wrong").disabled = true;
     document.getElementById("wrong-desc").textContent = "스펠링 퀴즈 후 활성화됩니다";
+    updateCompleteBtn();
     showScreen("menu");
   }
+
+  function updateCompleteBtn() {
+    const btn = document.getElementById("btn-complete");
+    if (currentUnit.completed) {
+      btn.textContent = "↩️ 완료 취소하기";
+      btn.style.background = "#fff3e0";
+      btn.style.color = "#e65100";
+    } else {
+      btn.textContent = "✅ 완료로 표시하기";
+      btn.style.background = "#e8f5e9";
+      btn.style.color = "#388e3c";
+    }
+  }
+
+  window.toggleComplete = async function() {
+    const newCompleted = !currentUnit.completed;
+    await setDoc(doc(db, "users", currentChild, "units", currentUnit.id), {
+      completed: newCompleted
+    }, { merge: true });
+    currentUnit.completed = newCompleted;
+    updateCompleteBtn();
+  };
 
   // ════════════════════════════════════
   // ── 학생: 플래시카드 ──
@@ -384,12 +414,24 @@
     document.getElementById("sp-progress").textContent = `${spIndex + 1} / ${currentWords.length}`;
     document.getElementById("sp-next-btn").classList.add("hidden");
     document.getElementById("sp-input").focus();
+    hintCount = 0;
+    document.getElementById("hint-btn").disabled = false;
     // 현재 + 다음 단어 미리 fetch
     prefetchAudio(w.word);
     if (currentWords[spIndex + 1]) prefetchAudio(currentWords[spIndex + 1].word);
   }
 
   window.speakCurrent = function() { speak(currentWords[spIndex]?.word); };
+
+  window.showHint = function() {
+    const answer = currentWords[spIndex]?.word || "";
+    hintCount = Math.min(hintCount + 1, answer.length - 1);
+    document.getElementById("sp-input").value = answer.slice(0, hintCount);
+    document.getElementById("sp-input").focus();
+    if (hintCount >= answer.length - 1) {
+      document.getElementById("hint-btn").disabled = true;
+    }
+  };
 
   window.checkAnswer = function() {
     if (!document.getElementById("sp-next-btn").classList.contains("hidden")) return;
@@ -585,8 +627,10 @@
       list.innerHTML = '<p style="color:#aaa;font-size:0.9rem">단원이 없습니다.</p>';
       return;
     }
-    snap.forEach(d => {
-      const unit = { id: d.id, ...d.data() };
+    const adminUnits = [];
+    snap.forEach(d => adminUnits.push({ id: d.id, ...d.data() }));
+    adminUnits.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    adminUnits.forEach(unit => {
       const item = document.createElement("div");
       item.className = "unit-select-item" + (adminUnit?.id === unit.id ? " selected" : "");
       item.innerHTML = `
@@ -602,7 +646,7 @@
     const name = document.getElementById("new-unit-name").value.trim();
     if (!name) return;
     const ref = doc(collection(db, "users", adminChild, "units"));
-    await setDoc(ref, { name, wordCount: 0, completed: false });
+    await setDoc(ref, { name, wordCount: 0, completed: false, createdAt: Date.now() });
     document.getElementById("new-unit-name").value = "";
     loadAdminUnits();
   };
