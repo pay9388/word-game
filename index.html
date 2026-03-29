@@ -442,7 +442,7 @@
       result.textContent = "정답! 🎉";
       result.className = "result-msg result-correct";
       playSound("correct");
-      speak(answer);
+      setTimeout(() => speak(answer), 500);
     } else {
       result.textContent = `틀렸어요 😢  정답: ${currentWords[spIndex]?.word}`;
       result.className = "result-msg result-wrong";
@@ -540,6 +540,17 @@
   // ── 효과음 ──
   // ════════════════════════════════════
   let audioCtx = null;
+
+  // iOS: 첫 터치/클릭 시 AudioContext 미리 초기화
+  function initAudioCtx() {
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  document.addEventListener('touchstart', initAudioCtx, false);
+  document.addEventListener('click', initAudioCtx, false);
+
   function getAudioCtx() {
     if (!audioCtx || audioCtx.state === 'closed') {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -550,14 +561,14 @@
 
   function playApplause() {
     const ctx = getAudioCtx();
-    // 딩동댕 - 세 음이 올라가는 차임벨
+    const d = 0.05;
     [523, 659, 784].forEach((freq, i) => {
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
       o.type = "sine";
       o.frequency.value = freq;
-      const t = ctx.currentTime + i * 0.28;
+      const t = ctx.currentTime + d + i * 0.28;
       g.gain.setValueAtTime(0, t);
       g.gain.linearRampToValueAtTime(0.4, t + 0.02);
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
@@ -565,32 +576,34 @@
       o.stop(t + 0.8);
     });
   }
+
   function playSound(type) {
     const ctx = getAudioCtx();
+    const d = 0.05; // resume 여유시간
     if (type === "correct") {
-      // 정답: 경쾌한 두 음
       [523, 784].forEach((freq, i) => {
         const o = ctx.createOscillator();
         const g = ctx.createGain();
         o.connect(g); g.connect(ctx.destination);
         o.frequency.value = freq;
         o.type = "sine";
-        g.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.15);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.3);
-        o.start(ctx.currentTime + i * 0.15);
-        o.stop(ctx.currentTime + i * 0.15 + 0.3);
+        const t = ctx.currentTime + d + i * 0.15;
+        g.gain.setValueAtTime(0.3, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        o.start(t);
+        o.stop(t + 0.3);
       });
     } else {
-      // 오답: 낮고 짧은 버저음
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
       o.frequency.value = 220;
-      o.type = "sawtooth";
-      g.gain.setValueAtTime(0.3, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      o.start(ctx.currentTime);
-      o.stop(ctx.currentTime + 0.4);
+      o.type = "triangle";
+      const t = ctx.currentTime + d;
+      g.gain.setValueAtTime(0.3, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      o.start(t);
+      o.stop(t + 0.4);
     }
   }
 
