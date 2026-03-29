@@ -315,6 +315,7 @@
     document.getElementById("fc-meaning").classList.add("hidden");
     document.getElementById("fc-hint").textContent = "카드를 눌러 뜻 확인";
     document.getElementById("fc-progress").textContent = `${fcIndex + 1} / ${currentWords.length}`;
+    document.querySelector(".nav-btns .btn-primary").disabled = false;
     // 현재 + 다음 단어 미리 fetch
     prefetchAudio(w.word);
     if (currentWords[fcIndex + 1]) prefetchAudio(currentWords[fcIndex + 1].word);
